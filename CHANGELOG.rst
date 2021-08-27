@@ -4,15 +4,12 @@ Release notes
 v0.10.3 (25 Aug 2021)
 ---------------------
 *Add r_cut for PositionRestrainCompute*
+  * effective for cpu mode but not for gpu mdoe.
 
-  * Restrain.py Class position(force._force)[v]
-  * PositionRestraintCompute.cc			          [v]
-  * PositionRestraintCompute.h 				  [v]
-  * PositionRestraintComputeGPU.cc			  [v]
-  * PositionRestraintComputeGPU.cu			  [v]
-  * PositionRestraintComputeGPU.cuh			  [v]
-  * PositionRestraintComputeGPU.h			  [no changes]
-  * test_restrain_position.py				  [v]
+*Bug fixes*
+
+  * Fix set_reference_positions in ``restrian.py``.
+
 
 v0.10.2 (xx Xxx 2021)
 ----------
