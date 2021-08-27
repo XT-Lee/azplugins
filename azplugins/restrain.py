@@ -310,6 +310,7 @@ class position(force._force):
     Args:
         group Group of atoms to apply restraint to
         k (float or array_like) Force constant, isotropic or in each of *x*-, *y*-, and *z*-directions
+        r_cut (non-negative float) Force constant, a scalar
         name (str) (optional) name for potential
 
     The Hamiltonian is augmented with a harmonic potential calculated based on the distance between the current and
@@ -320,7 +321,8 @@ class position(force._force):
         :nowrap:
 
         \begin{equation*}
-        V(\mathbf{r}) = \frac{1}{2} \mathbf{k} \mathbf{\Delta r} \mathbf{\Delta r}^T
+        V(\mathbf{r}) = \frac{1}{2} \mathbf{k} \mathbf{\Delta r} \mathbf{\Delta r}^T  where \Delta r < r_cut, 
+        V(\mathbf{r}) = \frac{1}{2} \mathbf{k} \mathbf{r_cut} \mathbf{r_cut}^T  where \Delta r >= r_cut, 
         \end{equation*}
 
     The strength of the potential depends on a spring constant :math:`\mathbf{k}` so that the particle position can be
@@ -333,8 +335,8 @@ class position(force._force):
 
     Examples::
 
-        restrain.position(group=group.all(), k=1.0)
-        springs = azplugins.restrain.position(group=wall, k=(100.0, 200.0, 300.0))
+        restrain.position(group=group.all(), k=1.0, r_cut=1000.0)
+        springs = azplugins.restrain.position(group=wall, k=(100.0, 200.0, 300.0), r_cut=1000.0)
 
     .. warning::
         Virial calculation is not implemented because the particles are tethered to fixed positions. A warning will be raised
@@ -342,7 +344,7 @@ class position(force._force):
         this warning can be safely ignored if the pressure (tensor) is not being logged or the pressure is not of interest.
 
     """
-    def __init__(self, group, k, name=""):
+    def __init__(self, group, k, r_cut, name=""):
         hoomd.util.print_status_line()
 
         # initialize the base class
@@ -358,21 +360,22 @@ class position(force._force):
         hoomd.context.current.system.addCompute(self.cpp_force, self.force_name)
 
         hoomd.util.quiet_status()
-        self.set_params(k=k)
+        self.set_params(k=k,r_cut=r_cut)
         hoomd.util.unquiet_status()
 
-    def set_params(self, k):
+    def set_params(self, k, r_cut):
         R""" Set the position restraint parameters.
 
         Args:
             k (float or array_like): Force constant, isotropic or in each of *x*-, *y*-, and *z*-directions
+            r_cut (non-negative float): Force constant, a scalar
 
         Examples::
 
-            springs = azplugins.restrain.position(group=hoomd.group.all(), k=0.0)
-            springs.set_params(k=1.)
-            springs.set_params(k=(1.,2.,3.))
-            springs.set_params(k=[1.,2.,3.]))
+            springs = azplugins.restrain.position(group=hoomd.group.all(), k=0.0, r_cut=1000.0)
+            springs.set_params(k=1., r_cut=1000.0)
+            springs.set_params(k=(1.,2.,3.), r_cut=1000.0)
+            springs.set_params(k=[1.,2.,3.]), r_cut=1000.0)
 
         """
         hoomd.util.print_status_line()
@@ -385,14 +388,14 @@ class position(force._force):
             except:
                 hoomd.context.msg.error('restrain.position.set_params: k must be a scalar or 3-item iterable\n')
                 raise ValueError('k must be a scalar or 3-item iterable')
-        for val in kx, ky, kz:
+        for val in kx, ky, kz, r_cut:
             try:
                 val = float(val)
             except:
-                hoomd.context.msg.error('restrain.position.set_params: k must be composed of scalars\n')
-                raise ValueError('k must be composed of scalars')
-
-        self.cpp_force.setForceConstant(float(kx), float(ky), float(kz))
+                hoomd.context.msg.error('restrain.position.set_params: k and r_cut must be composed of scalars\n')
+                raise ValueError('k and r_cut must be composed of scalars')
+                
+        self.cpp_force.setForceConstant(float(kx), float(ky), float(kz), float(r_cut))
 
     def set_reference_positions(self, ref_pos):
         R""" Set the reference positions for all particles.
@@ -402,7 +405,7 @@ class position(force._force):
 
         Examples::
 
-            springs = azplugins.restrain.position(group=hoomd.group.all(), k=1.0)
+            springs = azplugins.restrain.position(group=hoomd.group.all(), k=1.0, r_cut=1000.0)
             lattice = numpy.random.rand(N,3)
             springs.set_reference_positions(lattice)
 
@@ -416,7 +419,8 @@ class position(force._force):
             hoomd.context.msg.error('restrain.position.set_reference_positions: ref_pos cannot be cast to ndarray\n')
             raise ValueError('ref_pos cannot be cast to ndarray')
         # append each particle position
-        for i in range(0, len(ref_pos_ndarray.shape)):
+        np=ref_pos_ndarray.shape
+        for i in range(np[0]):
             self.set_position(i,ref_pos_ndarray[i,:])
         hoomd.util.unquiet_status()
 
@@ -429,7 +433,7 @@ class position(force._force):
 
         Examples::
 
-            springs = azplugins.restrain.position(group=hoomd.group.all(), k=1.0)
+            springs = azplugins.restrain.position(group=hoomd.group.all(), k=1.0, r_cut=1000.0)
             lattice = [1., 2., 3.]
             springs.set_reference_position(0,lattice)
 
