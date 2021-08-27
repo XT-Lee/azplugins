@@ -4,7 +4,6 @@ Release notes
 v0.10.3 (25 Aug 2021)
 ---------------------
 *Add r_cut for PositionRestrainCompute*
-  * effective for cpu mode but not for gpu mdoe.
 
 *Bug fixes*
 
