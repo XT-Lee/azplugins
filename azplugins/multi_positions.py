@@ -1,15 +1,15 @@
+import hoomd
 import numpy
 import hoomd.azplugins as azplugins
 
 
-def set_multi_positions(traps_pos,k,r_cut,group,num_particles):
+def set_multi_positions(traps_pos,k,r_cut,system):
     R""" Add an array of harmonic restraining potentials based on specified positions
     Args:
         traps_pos(float array_like): an array of n*3 which defines n potentials you will apply to particles
         k (float or array_like): Force constant, isotropic or in each of *x*-, *y*-, and *z*-directions
         r_cut (non-negative float): Force constant, a scalar
-        group: Group of atoms to apply restraint to
-        num_particles(integer): the number of particles included in the group
+        system(object): the object created and initialized by hoomd.init
 
     The Hamiltonian is augmented with a harmonic potential calculated based on the distance between the current and
     initial positions of particles. This effectively allows particles to have nearly fixed position while still retaining
@@ -28,8 +28,9 @@ def set_multi_positions(traps_pos,k,r_cut,group,num_particles):
         The displacement is calculated using the minimum image convention.
     Examples::
         import hoomd.azplugins.multi_positions as mp
+        sys=hoomd.init.create_lattice(unitcell=hoomd.lattice.sq(a=5), n=9);
         traps_pos=[[10,10,0],[-10,-10,0]];
-        mp.set_multi_positions(traps_pos,k=100.0,r_cut=6.0,group=hoomd.group.all(),num_particles=81)
+        mp.set_multi_positions(traps_pos,k=100.0,r_cut=6.0,system=sys)
     .. warning::
         Virial calculation is not implemented because the particles are tethered to fixed positions. A warning will be raised
         if any calls to :py:class:`hoomd.analyze.log` are made because the logger always requests the virial flags. However,
@@ -41,9 +42,12 @@ def set_multi_positions(traps_pos,k,r_cut,group,num_particles):
     num_traps=traps_shape.shape[0];
     arr_traps = range(num_traps);
     #generate an array for following for loop
+    snap = system.take_snapshot(all=True)
+    num_particles=len(snap.particles.position[:,0])
     arr_particles = range(num_particles);
 
     #generate an array of traps for object 'position'
+    group=hoomd.group.all()
     pos1 = azplugins.restrain.position(group=group,k=0.0,r_cut=0.0);
     traps_list=[pos1]*num_traps;
 
